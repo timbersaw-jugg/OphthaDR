@@ -1,0 +1,210 @@
+# # configs/config.yaml - RECOMMENDED settings for DR classification
+# # Key changes marked with # CHANGED
+
+# is_hpo: False
+# mode: "train"
+# seed: 42
+# device: "cpu"
+
+# runtime:
+#   torch_num_threads: 8
+#   omp_num_threads: 8
+#   use_multiprocessing_spawn: True
+
+# data:
+#   image_dir: "data/kaggle/images/"
+#   label_csv: "data/kaggle/labels.csv"
+#   split:
+#     train: 0.75
+#     val: 0.15
+#     test: 0.10
+#   image_size: 224
+
+# model:
+#   arch: "convnext_tiny"
+#   num_classes: 5
+#   pretrained_weights: "J:\\nlp\\pretrained\\pytorch_model.bin"
+#   freeze_backbone: true
+#   freeze_bn: false
+#   unfreeze_after: 5        # CHANGED: Unfreeze after 3 epochs (was 5, but with 35 epochs, start earlier)
+
+# training:
+#   batch_size: 8 #4,8,8,8
+#   num_workers: 4 
+#   epochs: 35
+#   base_lr: 1.0e-4          # CHANGED: Higher LR for frozen head phase (was 5e-5)
+#   backbone_lr: 1.0e-6
+#   min_lr: 1.0e-6
+#   optimizer: "adamw"
+#   scheduler: "cosine_annealing"
+#   warmup_epochs: 5         # ADDED: Warmup helps stability
+#   grad_accum_steps: 4 #8,4,4,8
+#   weight_decay: 0.02       # ADDED: Regularization (was 0.0)
+#   early_stop_patience: 10  # CHANGED: More aggressive early stopping (was 25)
+#   max_batches: 0
+  
+#   # Class balancing - use ONE of these, not both
+#   use_sampler: true        # Loader-level balancing
+#   use_alpha: false         # CHANGED: Don't double-apply with sampler
+#   auto_compute_alpha: false
+  
+#   metrics_interval: 1      # CHANGED: Log metrics every epoch for debugging
+
+# testing:
+#  batch_size: 4
+# loss:
+#   type: "focal"
+#   gamma: 2.0
+#   alpha: null              # CHANGED: Let sampler handle balancing
+#   use_class_weights: false
+#   class_weights: null
+#   label_smoothing: 0.1     # CHANGED: Add label smoothing (was 0.0)
+
+# augmentation:
+#   clahe_green: true
+#   ben_graham_crop: true
+#   rotate: 15               # CHANGED: Slightly more rotation (was 10)
+#   flip_horizontal: true
+#   flip_vertical: true      # CHANGED: Enable (retinal images can be flipped)
+#   color_jitter: false
+#   cutout: false             # CHANGED: Enable cutout for regularization
+
+# preprocessing:
+#   resize: 224
+#   normalize: true
+
+# gradcam:
+#   target_layer: "stages[-1]"
+#   use_cuda: false
+
+# output:
+#   output_dir: "experiments/"
+#   save_heatmaps: true
+#   save_masks: true
+#   output_json: true
+#   save_roi_bbox: true
+
+# logging:
+#   wandb: false
+#   local: true
+#   log_interval: 10
+
+# data:
+#   label_map:
+#     0: "No DR"
+#     1: "Mild"
+#     2: "Moderate"
+#     3: "Severe"
+#     4: "Proliferative"
+
+
+# configs/config.yaml - RECOMMENDED settings for DR classification
+# Key changes marked with # CHANGED, additions with # ADDED or # RECOMMENDED
+
+is_hpo: False
+mode: "train"
+seed: 42
+# Set to "cuda" if you want to run inference/training on GPU; keep "cpu" otherwise.
+device: "cpu"  # RECOMMENDED: set to "cuda" on GPU machines
+
+runtime:
+  torch_num_threads: 8
+  omp_num_threads: 8
+  use_multiprocessing_spawn: True
+
+data:
+  image_dir: "data/kaggle/images/"
+  label_csv: "data/kaggle/labels.csv"
+  split:
+    train: 0.75
+    val: 0.15
+    test: 0.10
+  image_size: 224
+
+model:
+  arch: "convnext_tiny"
+  num_classes: 5
+  #pretrained_weights: "J:\\nlp\\pretrained\\pytorch_model.bin" # windows
+  pretrained_weights: "/Users/anil/Projects/nlp/pretrained/pytorch_model.bin" # mac
+  freeze_backbone: true
+  freeze_bn: false
+  unfreeze_after: 5        # CHANGED: Unfreeze after this many epochs
+
+training:
+  batch_size: 8
+  num_workers: 4
+  epochs: 35
+  base_lr: 1.0e-4
+  backbone_lr: 1.0e-6
+  min_lr: 1.0e-6
+  optimizer: "adamw"
+  scheduler: "cosine_annealing"
+  warmup_epochs: 5
+  grad_accum_steps: 4
+  weight_decay: 0.02
+  early_stop_patience: 10
+  max_batches: 0
+
+  # Class balancing - use ONE of these, not both
+  use_sampler: true
+  use_alpha: false
+  auto_compute_alpha: false
+
+  metrics_interval: 1
+
+testing:
+  batch_size: 4
+
+loss:
+  type: "focal"
+  gamma: 2.0
+  alpha: null
+  use_class_weights: false
+  class_weights: null
+  label_smoothing: 0.1
+
+augmentation:
+  clahe_green: true
+  ben_graham_crop: true
+  rotate: 15
+  flip_horizontal: true
+  flip_vertical: true
+  color_jitter: false
+  cutout: false
+
+preprocessing:
+  resize: 224
+  normalize: true
+  # If you generate / persist retina masks during preprocessing, set the directory here.
+  # The API/inference code can load masks by name from this folder to compute leakage exactly.
+  retina_mask_dir: "data/masks/"  # ADDED: optional, set only if you persist masks
+
+gradcam:
+  target_layer: "stages[-1]"
+  use_cuda: false
+  # threshold used when binarizing the CAM for stats (mask_area_frac, bbox)
+  threshold: 0.30   # ADDED: tune 0.2-0.4 on validation
+  # method: "gradcam" or "gradcam++" (if you add support)
+  method: "gradcam" # RECOMMENDED: switch to "gradcam++" for small-lesion localization experiments
+
+output:
+  output_dir: "experiments/Predictions"
+  save_heatmaps: true
+  save_masks: true
+  output_json: true
+  save_roi_bbox: true
+  write_ndjson: true      # ADDED: write predictions.ndjson for downstream LLM/Kb ingestion
+  ndjson_path: "predictions.ndjson" # optional override (written inside output_dir)
+
+logging:
+  wandb: false
+  local: true
+  log_interval: 10
+
+data:
+  label_map:
+    0: "No DR"
+    1: "Mild"
+    2: "Moderate"
+    3: "Severe"
+    4: "Proliferative"
